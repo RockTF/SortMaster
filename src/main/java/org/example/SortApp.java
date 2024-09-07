@@ -98,7 +98,7 @@ public class SortApp extends JFrame {
             if (value < 1 || value > MAX_NUMBERS) {
                 enterButton.setEnabled(false);
                 if (value > MAX_NUMBERS) {
-                    showMessage("The number is too large. The allowable range is 1 to " + MAX_NUMBERS + ".");
+                    showMessage("The number is too large. The allowable range is 1 to " + MAX_NUMBERS + " numbers");
                 }
             } else {
                 enterButton.setEnabled(true);
@@ -192,7 +192,7 @@ public class SortApp extends JFrame {
         if (number <= NUMBER_LIMIT) {
             generateNumbers();
         } else {
-            showMessage("Please select a value smaller or equal to " + NUMBER_LIMIT + ".");
+            showMessage("Please select a value smaller or equal to " + NUMBER_LIMIT);
         }
     }
 
@@ -221,17 +221,27 @@ public class SortApp extends JFrame {
             }
 
             private int partition(int low, int high) {
-                int pivot = numbers[high];
-                int i = low - 1;
-                for (int j = low; j < high; j++) {
-                    boolean condition = ascending ? numbers[j] < pivot : numbers[j] > pivot;
-                    if (condition) {
-                        i++;
-                        swap(i, j);
-                    }
+                int pivot = selectPivot(low, high);
+                int i = low;
+                int j = high - 1;
+
+                while (true) {
+                    while (ascending ? numbers[i] < pivot : numbers[i] > pivot) i++;
+                    while (ascending ? numbers[j] > pivot : numbers[j] < pivot) j--;
+                    if (i >= j) break;
+                    swap(i, j);
                 }
-                swap(i + 1, high);
-                return i + 1;
+                swap(i, high - 1);
+                return i;
+            }
+
+            private int selectPivot(int low, int high) {
+                int middle = (low + high) / 2;
+                if (numbers[low] > numbers[middle]) swap(low, middle);
+                if (numbers[low] > numbers[high]) swap(low, high);
+                if (numbers[middle] > numbers[high]) swap(middle, high);
+                swap(middle, high - 1);
+                return numbers[high - 1];
             }
 
             private void swap(int i, int j) {
@@ -248,9 +258,5 @@ public class SortApp extends JFrame {
         setSize(SMALL_SIZE);
         setLocationRelativeTo(null);
         setVisible(true);
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(SortApp::new);
     }
 }
