@@ -5,8 +5,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Random;
+import java.util.Stack;
 
 public class SortApp extends JFrame {
 
@@ -34,25 +34,20 @@ public class SortApp extends JFrame {
 
         JPanel introPanel = createIntroPanel();
         JPanel sortScreen = createSortScreen();
-
         add(introPanel, "Intro");
         add(sortScreen, "Sort");
     }
 
     private JPanel createIntroPanel() {
         JPanel introPanel = new JPanel(new SpringLayout());
-
         JLabel promptLabel = new JLabel("How many numbers to display?");
         inputField = new JTextField(5);
-
         setUpInputField();
-
         enterButton = createButton("Enter", new Color(173, 216, 230));
 
         introPanel.add(promptLabel);
         introPanel.add(inputField);
         introPanel.add(enterButton);
-
         layoutIntroPanel(introPanel, promptLabel);
 
         return introPanel;
@@ -60,15 +55,12 @@ public class SortApp extends JFrame {
 
     private void layoutIntroPanel(JPanel introPanel, JLabel promptLabel) {
         SpringLayout layout = (SpringLayout) introPanel.getLayout();
-
         layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, promptLabel, 0, SpringLayout.HORIZONTAL_CENTER, introPanel);
         layout.putConstraint(SpringLayout.NORTH, promptLabel, 20, SpringLayout.NORTH, introPanel);
-
         layout.putConstraint(SpringLayout.NORTH, inputField, 20, SpringLayout.SOUTH, promptLabel);
         layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, inputField, 0, SpringLayout.HORIZONTAL_CENTER, introPanel);
         layout.putConstraint(SpringLayout.EAST, inputField, 0, SpringLayout.EAST, enterButton);
         layout.putConstraint(SpringLayout.WEST, inputField, 0, SpringLayout.WEST, enterButton);
-
         layout.putConstraint(SpringLayout.NORTH, enterButton, 20, SpringLayout.SOUTH, inputField);
         layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, enterButton, 0, SpringLayout.HORIZONTAL_CENTER, introPanel);
     }
@@ -93,18 +85,32 @@ public class SortApp extends JFrame {
     }
 
     private void validateInput() {
+        String text = inputField.getText();
+        if (text.isEmpty()) {
+            setInputValid();
+            return;
+        }
+
         try {
-            int value = Integer.parseInt(inputField.getText());
+            int value = Integer.parseInt(text);
             if (value < 1 || value > MAX_NUMBERS) {
-                enterButton.setEnabled(false);
-                if (value > MAX_NUMBERS) {
-                    showMessage("The number is too large. The allowable range is 1 to " + MAX_NUMBERS + " numbers");
-                }
+                setInputInvalid(value > MAX_NUMBERS);
             } else {
-                enterButton.setEnabled(true);
+                setInputValid();
             }
         } catch (NumberFormatException ex) {
-            enterButton.setEnabled(false);
+            setInputInvalid(false);
+        }
+    }
+
+    private void setInputValid() {
+        enterButton.setEnabled(true);
+    }
+
+    private void setInputInvalid(boolean isTooLarge) {
+        enterButton.setEnabled(false);
+        if (isTooLarge) {
+            showMessage("The number is too large. The allowable range is 1 to " + MAX_NUMBERS + " numbers");
         }
     }
 
@@ -118,17 +124,18 @@ public class SortApp extends JFrame {
 
     private JPanel createSortScreen() {
         numbersPanel = new JPanel();
-
         sortButton = createButton("Sort", new Color(0, 128, 0));
         resetButton = createButton("Reset", new Color(0, 128, 0));
 
-        JPanel sortControlPanel = new JPanel();
-        sortControlPanel.add(sortButton);
-        sortControlPanel.add(resetButton);
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.add(sortButton);
+        rightPanel.add(Box.createVerticalStrut(10));
+        rightPanel.add(resetButton);
 
         JPanel sortScreen = new JPanel(new BorderLayout());
         sortScreen.add(new JScrollPane(numbersPanel), BorderLayout.CENTER);
-        sortScreen.add(sortControlPanel, BorderLayout.SOUTH);
+        sortScreen.add(rightPanel, BorderLayout.EAST);
 
         return sortScreen;
     }
@@ -141,7 +148,7 @@ public class SortApp extends JFrame {
 
     private void handleEnterButton() {
         if (inputField.getText().isEmpty()) {
-            showMessage("The input field is empty. Please enter a number.");
+            showMessage("The form cannot be empty, please enter a number in the range from 1 to " + MAX_NUMBERS);
         } else {
             generateNumbers();
         }
@@ -175,17 +182,35 @@ public class SortApp extends JFrame {
 
     private void updateNumbersPanel() {
         numbersPanel.removeAll();
-        int columns = (numbers.length + 9) / 10;
-        numbersPanel.setLayout(new GridLayout(0, columns, 10, 10));
+        int totalNumbers = numbers.length;
+        int columnsNeeded = (totalNumbers + 9) / 10;
 
-        for (int number : numbers) {
-            JButton button = new JButton(String.valueOf(number));
-            button.addActionListener(e -> numberButtonClicked(number));
-            numbersPanel.add(button);
+        numbersPanel.setLayout(new GridLayout(10, columnsNeeded, 5, 5));
+
+        for (int row = 0; row < 10; row++) {
+            for (int col = 0; col < columnsNeeded; col++) {
+                int index = col * 10 + row;
+                if (index < totalNumbers) {
+                    JButton button = createNumberButton(numbers[index]);
+                    numbersPanel.add(button);
+                } else {
+                    numbersPanel.add(new JLabel(""));
+                }
+            }
         }
 
         numbersPanel.revalidate();
         numbersPanel.repaint();
+    }
+
+    private JButton createNumberButton(int number) {
+        JButton button = new JButton(String.valueOf(number));
+        button.setBackground(Color.BLUE);
+        button.setForeground(Color.WHITE);
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.addActionListener(e -> numberButtonClicked(Integer.parseInt(e.getActionCommand())));
+        return button;
     }
 
     private void numberButtonClicked(int number) {
@@ -197,61 +222,62 @@ public class SortApp extends JFrame {
     }
 
     private void sortNumbers() {
-        SwingWorker<Void, int[]> worker = new SwingWorker<>() {
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
-                quickSort(0, numbers.length - 1);
+                quickSort(numbers, numbers.length - 1, ascending);
                 return null;
             }
 
             @Override
-            protected void process(List<int[]> chunks) {
-                int[] lastChunk = chunks.get(chunks.size() - 1);
-                numbers = lastChunk.clone();
+            protected void done() {
                 updateNumbersPanel();
-            }
-
-            private void quickSort(int low, int high) {
-                if (low < high) {
-                    int pi = partition(low, high);
-                    publish(numbers.clone());
-                    quickSort(low, pi - 1);
-                    quickSort(pi + 1, high);
-                }
-            }
-
-            private int partition(int low, int high) {
-                int pivot = selectPivot(low, high);
-                int i = low;
-                int j = high - 1;
-
-                while (true) {
-                    while (ascending ? numbers[i] < pivot : numbers[i] > pivot) i++;
-                    while (ascending ? numbers[j] > pivot : numbers[j] < pivot) j--;
-                    if (i >= j) break;
-                    swap(i, j);
-                }
-                swap(i, high - 1);
-                return i;
-            }
-
-            private int selectPivot(int low, int high) {
-                int middle = (low + high) / 2;
-                if (numbers[low] > numbers[middle]) swap(low, middle);
-                if (numbers[low] > numbers[high]) swap(low, high);
-                if (numbers[middle] > numbers[high]) swap(middle, high);
-                swap(middle, high - 1);
-                return numbers[high - 1];
-            }
-
-            private void swap(int i, int j) {
-                int temp = numbers[i];
-                numbers[i] = numbers[j];
-                numbers[j] = temp;
             }
         };
         worker.execute();
         ascending = !ascending;
+    }
+
+    private void quickSort(int[] arr, int high, boolean ascending) {
+        Stack<int[]> stack = new Stack<>();
+        stack.push(new int[]{0, high});
+
+        Timer timer = new Timer(100, null);
+        timer.addActionListener(e -> {
+            if (stack.isEmpty()) {
+                ((Timer) e.getSource()).stop();
+            } else {
+                int[] range = stack.pop();
+                int start = range[0], end = range[1];
+
+                if (start < end) {
+                    int pi = partition(arr, start, end, ascending);
+                    SwingUtilities.invokeLater(this::updateNumbersPanel);
+                    stack.push(new int[]{start, pi - 1});
+                    stack.push(new int[]{pi + 1, end});
+                }
+            }
+        });
+        timer.start();
+    }
+
+    private int partition(int[] arr, int low, int high, boolean ascending) {
+        int pivot = arr[high];
+        int i = low - 1;
+        for (int j = low; j < high; j++) {
+            if ((ascending && arr[j] <= pivot) || (!ascending && arr[j] >= pivot)) {
+                i++;
+                swap(arr, i, j);
+            }
+        }
+        swap(arr, i + 1, high);
+        return i + 1;
+    }
+
+    private void swap(int[] arr, int i, int j) {
+        int temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
     }
 
     private void initializeFrame() {
