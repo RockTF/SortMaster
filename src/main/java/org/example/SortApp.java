@@ -9,6 +9,12 @@ import java.util.List;
 import java.util.Random;
 
 public class SortApp extends JFrame {
+
+    private static final Dimension SMALL_SIZE = new Dimension(400, 200);
+    private static final Dimension LARGE_SIZE = new Dimension(800, 600);
+    private static final int MAX_NUMBERS = 1000;
+    private static final int NUMBER_LIMIT = 30;
+
     private JTextField inputField;
     private JButton enterButton, sortButton, resetButton;
     private JPanel numbersPanel;
@@ -18,11 +24,11 @@ public class SortApp extends JFrame {
     public SortApp() {
         initUI();
         setupActions();
+        initializeFrame();
     }
 
     private void initUI() {
         setTitle("Sort Master");
-        setSize(800, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new CardLayout());
 
@@ -33,38 +39,67 @@ public class SortApp extends JFrame {
         add(sortScreen, "Sort");
     }
 
-    /** Create intro panel for inputting the number of elements */
     private JPanel createIntroPanel() {
-        JPanel introPanel = new JPanel(new BorderLayout());
+        JPanel introPanel = new JPanel(new SpringLayout());
+
         JLabel promptLabel = new JLabel("How many numbers to display?");
         inputField = new JTextField(5);
+
         setUpInputField();
 
         enterButton = createButton("Enter", new Color(173, 216, 230));
-        introPanel.add(promptLabel, BorderLayout.NORTH);
-        introPanel.add(inputField, BorderLayout.CENTER);
-        introPanel.add(enterButton, BorderLayout.SOUTH);
+
+        introPanel.add(promptLabel);
+        introPanel.add(inputField);
+        introPanel.add(enterButton);
+
+        layoutIntroPanel(introPanel, promptLabel);
 
         return introPanel;
     }
 
-    /** Initialize input field with validation logic */
+    private void layoutIntroPanel(JPanel introPanel, JLabel promptLabel) {
+        SpringLayout layout = (SpringLayout) introPanel.getLayout();
+
+        layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, promptLabel, 0, SpringLayout.HORIZONTAL_CENTER, introPanel);
+        layout.putConstraint(SpringLayout.NORTH, promptLabel, 20, SpringLayout.NORTH, introPanel);
+
+        layout.putConstraint(SpringLayout.NORTH, inputField, 20, SpringLayout.SOUTH, promptLabel);
+        layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, inputField, 0, SpringLayout.HORIZONTAL_CENTER, introPanel);
+        layout.putConstraint(SpringLayout.EAST, inputField, 0, SpringLayout.EAST, enterButton);
+        layout.putConstraint(SpringLayout.WEST, inputField, 0, SpringLayout.WEST, enterButton);
+
+        layout.putConstraint(SpringLayout.NORTH, enterButton, 20, SpringLayout.SOUTH, inputField);
+        layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, enterButton, 0, SpringLayout.HORIZONTAL_CENTER, introPanel);
+    }
+
     private void setUpInputField() {
         inputField.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { validateInput(); }
-            public void removeUpdate(DocumentEvent e) { validateInput(); }
-            public void changedUpdate(DocumentEvent e) { validateInput(); }
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                validateInput();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                validateInput();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                validateInput();
+            }
         });
     }
 
-    /** Input validator for the number of elements */
     private void validateInput() {
         try {
             int value = Integer.parseInt(inputField.getText());
-            if (value < 1 || value > 1000) {
-                showMessage("The number is too large or too small, the allowable range is 1 to 1000.");
-                inputField.setText("");
+            if (value < 1 || value > MAX_NUMBERS) {
                 enterButton.setEnabled(false);
+                if (value > MAX_NUMBERS) {
+                    showMessage("The number is too large. The allowable range is 1 to " + MAX_NUMBERS + ".");
+                }
             } else {
                 enterButton.setEnabled(true);
             }
@@ -73,7 +108,6 @@ public class SortApp extends JFrame {
         }
     }
 
-    /** Create a button with specified text and background color */
     private JButton createButton(String text, Color bgColor) {
         JButton button = new JButton(text);
         button.setBackground(bgColor);
@@ -82,7 +116,6 @@ public class SortApp extends JFrame {
         return button;
     }
 
-    /** Create the screen where numbers will be sorted */
     private JPanel createSortScreen() {
         numbersPanel = new JPanel();
 
@@ -100,14 +133,12 @@ public class SortApp extends JFrame {
         return sortScreen;
     }
 
-    /** Set up actions for the buttons */
     private void setupActions() {
         enterButton.addActionListener(e -> handleEnterButton());
         sortButton.addActionListener(e -> sortNumbers());
         resetButton.addActionListener(e -> showIntroPanel());
     }
 
-    /** Handle the Enter button click */
     private void handleEnterButton() {
         if (inputField.getText().isEmpty()) {
             showMessage("The input field is empty. Please enter a number.");
@@ -116,53 +147,55 @@ public class SortApp extends JFrame {
         }
     }
 
-    /** Show a message dialog */
     private void showMessage(String message) {
         JOptionPane.showMessageDialog(this, message);
     }
 
-    /** Show the intro panel */
     private void showIntroPanel() {
         ((CardLayout) getContentPane().getLayout()).show(getContentPane(), "Intro");
+        setSize(SMALL_SIZE);
+        setLocationRelativeTo(null);
     }
 
-    /** Generate random numbers */
     private void generateNumbers() {
         if (!enterButton.isEnabled()) return;
 
         int count = Integer.parseInt(inputField.getText());
         numbers = new Random().ints(count - 1, 1, 1001).toArray();
         numbers = Arrays.copyOf(numbers, count);
-        numbers[count - 1] = new Random().nextInt(30) + 1;
+        numbers[count - 1] = new Random().nextInt(NUMBER_LIMIT) + 1;
+
         updateNumbersPanel();
+
         ((CardLayout) getContentPane().getLayout()).show(getContentPane(), "Sort");
+        setSize(LARGE_SIZE);
+        setLocationRelativeTo(null);
         ascending = true;
     }
 
-    /** Update the panel displaying numbers */
     private void updateNumbersPanel() {
         numbersPanel.removeAll();
         int columns = (numbers.length + 9) / 10;
         numbersPanel.setLayout(new GridLayout(0, columns, 10, 10));
+
         for (int number : numbers) {
             JButton button = new JButton(String.valueOf(number));
             button.addActionListener(e -> numberButtonClicked(number));
             numbersPanel.add(button);
         }
+
         numbersPanel.revalidate();
         numbersPanel.repaint();
     }
 
-    /** Handle number button clicks */
     private void numberButtonClicked(int number) {
-        if (number <= 30) {
+        if (number <= NUMBER_LIMIT) {
             generateNumbers();
         } else {
-            showMessage("Please select a value smaller or equal to 30.");
+            showMessage("Please select a value smaller or equal to " + NUMBER_LIMIT + ".");
         }
     }
 
-    /** Sort the numbers using quicksort */
     private void sortNumbers() {
         SwingWorker<Void, int[]> worker = new SwingWorker<>() {
             @Override
@@ -209,5 +242,15 @@ public class SortApp extends JFrame {
         };
         worker.execute();
         ascending = !ascending;
+    }
+
+    private void initializeFrame() {
+        setSize(SMALL_SIZE);
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(SortApp::new);
     }
 }
