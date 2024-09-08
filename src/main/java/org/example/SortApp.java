@@ -19,7 +19,7 @@ public class SortApp extends JFrame {
     private JButton enterButton, sortButton, resetButton;
     private JPanel numbersPanel;
     private int[] numbers;
-    private boolean ascending = true;
+    private boolean ascending = false;
 
     public SortApp() {
         initUI();
@@ -162,6 +162,7 @@ public class SortApp extends JFrame {
         ((CardLayout) getContentPane().getLayout()).show(getContentPane(), "Intro");
         setSize(SMALL_SIZE);
         setLocationRelativeTo(null);
+        ascending = false;
     }
 
     private void generateNumbers() {
@@ -177,7 +178,7 @@ public class SortApp extends JFrame {
         ((CardLayout) getContentPane().getLayout()).show(getContentPane(), "Sort");
         setSize(LARGE_SIZE);
         setLocationRelativeTo(null);
-        ascending = true;
+        ascending = false; // Встановлюємо на сортування від найбільшого до найменшого
     }
 
     private void updateNumbersPanel(int[] numbers) {
