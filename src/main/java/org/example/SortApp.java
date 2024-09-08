@@ -154,10 +154,6 @@ public class SortApp extends JFrame {
         }
     }
 
-    private void showMessage(String message) {
-        JOptionPane.showMessageDialog(this, message);
-    }
-
     private void showIntroPanel() {
         ((CardLayout) getContentPane().getLayout()).show(getContentPane(), "Intro");
         setSize(SMALL_SIZE);
@@ -289,5 +285,9 @@ public class SortApp extends JFrame {
         setSize(SMALL_SIZE);
         setLocationRelativeTo(null);
         setVisible(true);
+    }
+
+    private void showMessage(String message) {
+        JOptionPane.showMessageDialog(this, message);
     }
 }
