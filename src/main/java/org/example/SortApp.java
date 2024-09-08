@@ -5,6 +5,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 public class SortApp extends JFrame {
@@ -171,7 +172,7 @@ public class SortApp extends JFrame {
         numbers = Arrays.copyOf(numbers, count);
         numbers[count - 1] = new Random().nextInt(NUMBER_LIMIT) + 1;
 
-        updateNumbersPanel();
+        updateNumbersPanel(numbers);
 
         ((CardLayout) getContentPane().getLayout()).show(getContentPane(), "Sort");
         setSize(LARGE_SIZE);
@@ -179,7 +180,7 @@ public class SortApp extends JFrame {
         ascending = true;
     }
 
-    private void updateNumbersPanel() {
+    private void updateNumbersPanel(int[] numbers) {
         numbersPanel.removeAll();
         int totalNumbers = numbers.length;
         int columnsNeeded = (totalNumbers + 9) / 10;
@@ -221,57 +222,66 @@ public class SortApp extends JFrame {
     }
 
     private void sortNumbers() {
-        SwingWorker<Void, Void> worker = new SwingWorker<>() {
-            @Override
-            protected Void doInBackground() {
-                quickSort(numbers, 0, numbers.length - 1, ascending);
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                updateNumbersPanel();
-            }
-        };
-        worker.execute();
+        new SortWorker(numbers.clone(), ascending).execute();
         ascending = !ascending;
     }
 
-    private void quickSort(int[] arr, int low, int high, boolean ascending) {
-        if (low < high) {
-            int pi = partition(arr, low, high, ascending);
-            if (SwingUtilities.isEventDispatchThread()) {
-                updateNumbersPanel();
-            } else {
-                SwingUtilities.invokeLater(this::updateNumbersPanel);
-            }
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            quickSort(arr, low, pi - 1, ascending);
-            quickSort(arr, pi + 1, high, ascending);
-        }
-    }
+    private class SortWorker extends SwingWorker<Void, int[]> {
+        private final int[] arr;
+        private final boolean ascending;
 
-    private int partition(int[] arr, int low, int high, boolean ascending) {
-        int pivot = arr[high];
-        int i = low - 1;
-        for (int j = low; j < high; j++) {
-            if ((ascending && arr[j] <= pivot) || (!ascending && arr[j] >= pivot)) {
-                i++;
-                swap(arr, i, j);
+        public SortWorker(int[] arr, boolean ascending) {
+            this.arr = arr;
+            this.ascending = ascending;
+        }
+
+        @Override
+        protected Void doInBackground() {
+            quickSort(arr, 0, arr.length - 1, ascending);
+            return null;
+        }
+
+        @Override
+        protected void process(List<int[]> chunks) {
+            updateNumbersPanel(chunks.get(chunks.size() - 1));
+        }
+
+        @Override
+        protected void done() {
+            numbers = arr;
+            updateNumbersPanel(numbers);
+        }
+
+        private void quickSort(int[] arr, int low, int high, boolean ascending) {
+            if (low < high) {
+                int pi = partition(arr, low, high, ascending);
+                publish(arr.clone());
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                quickSort(arr, low, pi - 1, ascending);
+                quickSort(arr, pi + 1, high, ascending);
             }
         }
-        swap(arr, i + 1, high);
-        return i + 1;
-    }
 
-    private void swap(int[] arr, int i, int j) {
-        int temp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = temp;
+        private int partition(int[] arr, int low, int high, boolean ascending) {
+            int pivot = arr[high];
+            int i = low - 1;
+            for (int j = low; j < high; j++) {
+                if ((ascending && arr[j] <= pivot) || (!ascending && arr[j] >= pivot)) {
+                    i++;
+                    int temp = arr[i];
+                    arr[i] = arr[j];
+                    arr[j] = temp;
+                }
+            }
+            int temp = arr[i + 1];
+            arr[i + 1] = arr[high];
+            arr[high] = temp;
+            return i + 1;
+        }
     }
 
     private void initializeFrame() {
