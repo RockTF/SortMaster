@@ -178,7 +178,7 @@ public class SortApp extends JFrame {
         ((CardLayout) getContentPane().getLayout()).show(getContentPane(), "Sort");
         setSize(LARGE_SIZE);
         setLocationRelativeTo(null);
-        ascending = false; // Встановлюємо на сортування від найбільшого до найменшого
+        ascending = false;
     }
 
     private void updateNumbersPanel(int[] numbers) {
