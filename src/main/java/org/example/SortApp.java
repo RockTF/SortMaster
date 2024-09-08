@@ -6,7 +6,6 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.Arrays;
 import java.util.Random;
-import java.util.Stack;
 
 public class SortApp extends JFrame {
 
@@ -225,7 +224,7 @@ public class SortApp extends JFrame {
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
-                quickSort(numbers, numbers.length - 1, ascending);
+                quickSort(numbers, 0, numbers.length - 1, ascending);
                 return null;
             }
 
@@ -238,27 +237,22 @@ public class SortApp extends JFrame {
         ascending = !ascending;
     }
 
-    private void quickSort(int[] arr, int high, boolean ascending) {
-        Stack<int[]> stack = new Stack<>();
-        stack.push(new int[]{0, high});
-
-        Timer timer = new Timer(100, null);
-        timer.addActionListener(e -> {
-            if (stack.isEmpty()) {
-                ((Timer) e.getSource()).stop();
+    private void quickSort(int[] arr, int low, int high, boolean ascending) {
+        if (low < high) {
+            int pi = partition(arr, low, high, ascending);
+            if (SwingUtilities.isEventDispatchThread()) {
+                updateNumbersPanel();
             } else {
-                int[] range = stack.pop();
-                int start = range[0], end = range[1];
-
-                if (start < end) {
-                    int pi = partition(arr, start, end, ascending);
-                    SwingUtilities.invokeLater(this::updateNumbersPanel);
-                    stack.push(new int[]{start, pi - 1});
-                    stack.push(new int[]{pi + 1, end});
-                }
+                SwingUtilities.invokeLater(this::updateNumbersPanel);
             }
-        });
-        timer.start();
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            quickSort(arr, low, pi - 1, ascending);
+            quickSort(arr, pi + 1, high, ascending);
+        }
     }
 
     private int partition(int[] arr, int low, int high, boolean ascending) {
