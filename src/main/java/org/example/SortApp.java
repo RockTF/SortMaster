@@ -273,7 +273,9 @@ public class SortApp extends JFrame {
                     Thread.currentThread().interrupt();
                 }
                 quickSort(arr, low, pi - 1, ascending);
+                publish(arr.clone());
                 quickSort(arr, pi + 1, high, ascending);
+                publish(arr.clone());
             }
         }
 
