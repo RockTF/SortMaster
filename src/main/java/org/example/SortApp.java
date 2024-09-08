@@ -20,6 +20,7 @@ public class SortApp extends JFrame {
     private JPanel numbersPanel;
     private int[] numbers;
     private boolean ascending = false;
+    private SortWorker currentSortWorker;
 
     public SortApp() {
         initUI();
@@ -143,7 +144,7 @@ public class SortApp extends JFrame {
     private void setupActions() {
         enterButton.addActionListener(e -> handleEnterButton());
         sortButton.addActionListener(e -> sortNumbers());
-        resetButton.addActionListener(e -> showIntroPanel());
+        resetButton.addActionListener(e -> resetAction());
     }
 
     private void handleEnterButton() {
@@ -152,6 +153,14 @@ public class SortApp extends JFrame {
         } else {
             generateNumbers();
         }
+    }
+
+    private void resetAction() {
+        if (currentSortWorker != null && !currentSortWorker.isDone()) {
+            currentSortWorker.cancel(true);
+        }
+        inputField.setText("");
+        showIntroPanel();
     }
 
     private void showIntroPanel() {
@@ -219,7 +228,11 @@ public class SortApp extends JFrame {
     }
 
     private void sortNumbers() {
-        new SortWorker(numbers.clone(), ascending).execute();
+        if (currentSortWorker != null && !currentSortWorker.isDone()) {
+            currentSortWorker.cancel(true);
+        }
+        currentSortWorker = new SortWorker(numbers.clone(), ascending);
+        currentSortWorker.execute();
         ascending = !ascending;
     }
 
@@ -251,6 +264,7 @@ public class SortApp extends JFrame {
 
         private void quickSort(int[] arr, int low, int high, boolean ascending) {
             if (low < high) {
+                if (isCancelled()) return;
                 int pi = partition(arr, low, high, ascending);
                 publish(arr.clone());
                 try {
@@ -267,6 +281,7 @@ public class SortApp extends JFrame {
             int pivot = arr[high];
             int i = low - 1;
             for (int j = low; j < high; j++) {
+                if (isCancelled()) return high;
                 if ((ascending && arr[j] <= pivot) || (!ascending && arr[j] >= pivot)) {
                     i++;
                     int temp = arr[i];
