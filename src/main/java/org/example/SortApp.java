@@ -166,7 +166,8 @@ public class SortApp extends JFrame {
         if (inputField.getText().isEmpty()) {
             showMessage("The form cannot be empty, please enter a number in the range from 1 to " + MAX_NUMBERS);
         } else {
-            generateNumbers();
+            int count = Integer.parseInt(inputField.getText());
+            generateNumbers(count);
         }
     }
 
@@ -185,10 +186,9 @@ public class SortApp extends JFrame {
         ascending = false;
     }
 
-    private void generateNumbers() {
+    private void generateNumbers(int count) {
         if (!enterButton.isEnabled()) return;
 
-        int count = Integer.parseInt(inputField.getText());
         numbers = random.ints(count - 1, RANDOM_LOWER_BOUND, RANDOM_UPPER_BOUND).toArray();
         numbers = Arrays.copyOf(numbers, count);
         numbers[count - 1] = random.nextInt(NUMBER_LIMIT) + 1;
@@ -236,7 +236,10 @@ public class SortApp extends JFrame {
 
     private void numberButtonClicked(int number) {
         if (number <= NUMBER_LIMIT) {
-            generateNumbers();
+            if (currentSortWorker != null && !currentSortWorker.isDone()) {
+                currentSortWorker.cancel(true);
+            }
+            SwingUtilities.invokeLater(() -> generateNumbers(number));
         } else {
             showMessage("Please select a value smaller or equal to " + NUMBER_LIMIT);
         }
