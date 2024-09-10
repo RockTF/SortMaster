@@ -27,6 +27,7 @@ public class SortApp extends JFrame {
     private static final Color BUTTON_SORT_COLOR = new Color(0, 128, 0);
     private static final Color NUMBER_BUTTON_BACKGROUND_COLOR = Color.BLUE;
     private static final Color NUMBER_BUTTON_TEXT_COLOR = Color.WHITE;
+    private static final Color SORTING_COLOR = Color.RED;
 
     private final Random random = new Random();
 
@@ -230,6 +231,7 @@ public class SortApp extends JFrame {
         button.setForeground(NUMBER_BUTTON_TEXT_COLOR);
         button.setOpaque(true);
         button.setBorderPainted(false);
+        button.putClientProperty("number", number);
         button.addActionListener(e -> numberButtonClicked(Integer.parseInt(e.getActionCommand())));
         return button;
     }
@@ -271,13 +273,16 @@ public class SortApp extends JFrame {
 
         @Override
         protected void process(List<int[]> chunks) {
-            updateNumbersPanel(chunks.getLast());
+            int[] latestChunk = chunks.getLast();
+            updateNumbersPanel(latestChunk);
         }
 
         @Override
         protected void done() {
-            numbers = arr;
-            updateNumbersPanel(numbers);
+            if (!isCancelled()) {
+                numbers = arr;
+                updateNumbersPanel(numbers);
+            }
         }
 
         private void quickSort(int[] arr, int low, int high, boolean ascending) {
@@ -302,17 +307,42 @@ public class SortApp extends JFrame {
             int i = low - 1;
             for (int j = low; j < high; j++) {
                 if (isCancelled()) return high;
+
+                setButtonSortingState(j, true);
+                try {
+                    Thread.sleep(SORT_SLEEP_DURATION_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
                 if ((ascending && arr[j] <= pivot) || (!ascending && arr[j] >= pivot)) {
                     i++;
                     int temp = arr[i];
                     arr[i] = arr[j];
                     arr[j] = temp;
                 }
+
+                setButtonSortingState(j, false);
+                publish(Arrays.copyOf(arr, arr.length));
             }
             int temp = arr[i + 1];
             arr[i + 1] = arr[high];
             arr[high] = temp;
             return i + 1;
+        }
+
+        private void setButtonSortingState(int index, boolean isSorting) {
+            SwingUtilities.invokeLater(() -> {
+                Component component = numbersPanel.getComponent(index);
+                if (component instanceof JButton) {
+                    if (isSorting) {
+                        component.setBackground(SORTING_COLOR);
+                    } else {
+                        component.setBackground(NUMBER_BUTTON_BACKGROUND_COLOR);
+                    }
+                    component.repaint();
+                }
+            });
         }
     }
 
